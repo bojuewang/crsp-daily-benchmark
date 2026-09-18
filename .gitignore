@@ -1,0 +1,14 @@
+data/
+output/
+.wrds-venv/
+__pycache__/
+*.pyc
+*.log
+*.aux
+*.nav
+*.out
+*.snm
+*.toc
+*.synctex.gz
+*.fls
+*.fdb_latexmk

@@ -8,6 +8,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -33,7 +34,7 @@ def download_names(output: Path) -> None:
     """Snapshot only dsenames intervals that overlap the target calendar year."""
     import wrds
 
-    db = wrds.Connection(wrds_username="wangbojue")
+    db = wrds.Connection(wrds_username=os.environ.get("WRDS_USERNAME"))
     try:
         names = db.raw_sql(
             """

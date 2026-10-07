@@ -1,5 +1,6 @@
 """Download nonmissing 2024 CRSP daily delisting returns from WRDS."""
 from pathlib import Path
+import os
 
 import wrds
 
@@ -8,7 +9,8 @@ OUTPUT = ROOT / "data" / "crsp_dsedelist_2024.csv.gz"
 
 
 def main():
-    db = wrds.Connection(wrds_username="wangbojue")
+    OUTPUT.parent.mkdir(parents=True, exist_ok=True)
+    db = wrds.Connection(wrds_username=os.environ.get("WRDS_USERNAME"))
     try:
         data = db.raw_sql(
             """SELECT permno, dlstdt, dlret, dlstcd FROM crsp.dsedelist

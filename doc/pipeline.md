@@ -1,5 +1,7 @@
 # Stock Return Prediction
 
+Current implementation: five monthly July–November 2024 folds with zero/reversal baselines, Ridge, scikit-learn histogram gradient boosting and auxiliary logistic regression. See [recorded results](../result/crsp_monthly_walkforward_2024.md) and [validation boundaries](validation.md). Other model families below are research extensions, not completed experiments.
+
 ## Problem
 
 Use daily CRSP to train model and predict cross-sectional stock returns. Key is to figure out the upgraded complexity of model relating to improvement of **Rank IC** and **portfolio Sharpe**.
@@ -10,7 +12,7 @@ CRSP → design matrix → ERM → walk-forward tests → IC / Rank IC → portf
 
 ## Data and target
 
-| Data | Available in this repository |
+| Data | Required local inputs (excluded from Git) |
 | --- | --- |
 | CRSP daily stock file | `data/crsp_dsf_2024.csv.gz`; 2,400,962 security-day rows, 10,503 PERMNOs, 252 trading days (Jan 2–Dec 31, 2024) |
 | Daily fields | `permno`, `date`, `prc`, `vol`, `shrout`, `ret`, `retx`, `openprc` |
@@ -117,4 +119,4 @@ where $C_t$ is the stated transaction-cost model. Prediction quality is the dail
 
 Deliver a reproducible feature panel, fold-level predictions and metadata, model comparison, stitched out-of-sample IC series, portfolio returns, and a concise conclusion that separates predictive power from net tradable performance.
 
-The present files support data checks and a provisional end-to-end smoke test. Final return labels and portfolio results require delisting-return data; a credible multi-year walk-forward study and independent lockbox also require earlier and later daily history plus matching name history. The annual TAQ sampling rules in `doc/filter.md` use full-year statistics and must not be reused as a historical daily prediction universe.
+The recorded monthly experiment includes delisting-return processing and July–November evaluation. Its numerical report is retained, but the licensed raw inputs and saved predictions are absent from Git and were not rerun during the 2026-10-07 update. A multi-year study requires additional daily and matching name history. Existing portfolio statistics are conditional on complete outcomes and future fill availability; see `doc/validation.md`. The annual TAQ sampling rules in `doc/filter.md` use full-year statistics and must not be reused as a historical daily prediction universe.

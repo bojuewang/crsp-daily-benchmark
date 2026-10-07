@@ -1,5 +1,7 @@
 # 2024 CRSP 月度 walk-forward 实验报告
 
+核查说明（2026-10-07）：以下数值保留自原有报告，本次没有重跑真实数据。原始输入和缓存预测未提交到 Git；验证范围与组合口径局限见 [validation](../doc/validation.md)。
+
 ## 实验设计
 
 沿用 `doc/pipeline.md` 的 20 个市场交易日、8 项 CRSP 特征和逐日历史股票池。信号在 (t) 日收盘后形成，在 (t+1) 日收盘成交，持有至 (t+2) 日收盘；若 `ret` 与 `dlret` 同时适用，复合总收益为 ((1+ret)(1+dlret)-1)。每个月使用不断扩展的训练集、紧邻的上月验证集、当月测试集，并在训练与验证、验证与测试之间预留两交易日标签间隔。Ridge 的 `alpha` 在 {0.1, 10, 1000} 中按验证 MSE 选，梯度提升树的最大叶节点数在 {3, 7} 中按验证 MSE 选；之后用训练加验证集重拟合。零预测和简单反转为固定基线。逻辑回归用固定 `C=1` 做涨跌分类。
@@ -44,7 +46,7 @@
 ## 复现
 
 ```bash
-OPENBLAS_NUM_THREADS=1 /home/wangb/miniforge3/bin/python src/run_crsp_monthly_walkforward_2024.py
+OPENBLAS_NUM_THREADS=1 .venv/bin/python src/run_crsp_monthly_walkforward_2024.py
 ```
 
 数值结果及每折配置、输入 SHA-256、退市收益处理和日期审计位于 `output/crsp_monthly_walkforward_2024/`。本报告和演示文稿均只引用该月度实验的指标；2024 年单次切分实验仍保存在原目录供审计。

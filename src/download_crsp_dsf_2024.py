@@ -2,6 +2,7 @@
 
 from pathlib import Path
 import gzip
+import os
 import pandas as pd
 import wrds
 
@@ -12,7 +13,8 @@ OUTPUT = PROJECT_ROOT / "data" / f"crsp_dsf_{YEAR}.csv.gz"
 
 
 def main() -> None:
-    db = wrds.Connection(wrds_username="wangbojue")
+    OUTPUT.parent.mkdir(parents=True, exist_ok=True)
+    db = wrds.Connection(wrds_username=os.environ.get("WRDS_USERNAME"))
     try:
         with gzip.open(OUTPUT, "wt", newline="") as handle:
             for month in range(1, 13):

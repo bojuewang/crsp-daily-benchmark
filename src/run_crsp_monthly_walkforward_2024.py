@@ -21,6 +21,36 @@ OUT = ROOT / "output" / "crsp_monthly_walkforward_2024"
 TEST_MONTHS = ["2024-07", "2024-08", "2024-09", "2024-10", "2024-11"]
 
 
+def fold_masks(x, month):
+    """Use observable labels before each later block; preserve December lockbox."""
+    dates = pd.Index(sorted(x.date.unique()))
+    test_month = pd.Period(month, freq="M")
+    val_month = test_month - 1
+    test_start = dates[dates.to_period("M") == test_month].min()
+    val_start = dates[dates.to_period("M") == val_month].min()
+    if pd.isna(test_start) or pd.isna(val_start):
+        raise ValueError(f"Missing validation/test dates for {month}")
+    test_start_pos, val_start_pos = dates.get_loc(test_start), dates.get_loc(val_start)
+    if val_start_pos < 3 or test_start_pos < 3:
+        raise ValueError("Insufficient history for two-day label embargo")
+    train_end, val_end = dates[val_start_pos - 3], dates[test_start_pos - 3]
+    test_end = dates[dates.to_period("M") == test_month].max()
+    if month == "2024-11":
+        test_end = x.loc[x.exit_date.lt("2024-12-01") & x.date.dt.to_period("M").eq(test_month), "date"].max()
+    train = x.date.le(train_end) & x.y.notna()
+    val = x.date.between(val_start, val_end) & x.y.notna()
+    test = x.date.between(test_start, test_end)
+    if not all(mask.any() for mask in (train, val, test)):
+        raise ValueError(f"Empty train/validation/test block for {month}")
+    if x.loc[train, "exit_date"].max() >= val_start:
+        raise ValueError("Training labels overlap validation signals")
+    if x.loc[val, "exit_date"].max() >= test_start:
+        raise ValueError("Validation labels overlap test signals")
+    if x.loc[test, "exit_date"].max() >= pd.Timestamp("2024-12-01"):
+        raise ValueError("Test outcomes enter December lockbox")
+    return train, val, test, train_end, val_start, val_end, test_start, test_end
+
+
 def regression_model(kind, value):
     if kind == "ridge":
         return make_pipeline(SimpleImputer(strategy="median"), StandardScaler(), Ridge(alpha=value))
@@ -31,26 +61,9 @@ def regression_model(kind, value):
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     x, audit = build_panel()
-    dates = pd.Index(sorted(x.date.unique()))
     folds, predictions, class_predictions = [], [], []
     for month in TEST_MONTHS:
-        test_month = pd.Period(month, freq="M")
-        val_month = test_month - 1
-        test_start = dates[dates.to_period("M") == test_month].min()
-        val_start = dates[dates.to_period("M") == val_month].min()
-        test_start_pos, val_start_pos = dates.get_loc(test_start), dates.get_loc(val_start)
-        train_end = dates[val_start_pos - 3]
-        val_end = dates[test_start_pos - 3]
-        test_end = dates[dates.to_period("M") == test_month].max()
-        # Reserve all December realized outcomes for the December lockbox.
-        if month == "2024-11":
-            test_end = x.loc[x.exit_date.lt("2024-12-01") & x.date.dt.to_period("M").eq(test_month), "date"].max()
-        train = x.date.le(train_end) & x.y.notna()
-        val = x.date.between(val_start, val_end) & x.y.notna()
-        test = x.date.between(test_start, test_end)
-        assert x.loc[train, "exit_date"].max() < x.loc[val, "date"].min()
-        assert x.loc[val, "exit_date"].max() < x.loc[test, "date"].min()
-        assert not (month == "2024-11" and x.loc[test, "exit_date"].max() >= pd.Timestamp("2024-12-01"))
+        train, val, test, train_end, val_start, val_end, test_start, test_end = fold_masks(x, month)
         params = {}
         base = x.loc[test, ["permno", "date", "entry_date", "exit_date", "fill_ok", "y", "reversal"]].copy()
         base["fold"] = month
